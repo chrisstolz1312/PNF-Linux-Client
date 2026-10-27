@@ -27,8 +27,42 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-if ! command -v nmcli >/dev/null 2>&1; then
-    echo "ERROR: nmcli not found."
+###############################################################################
+# Preflight: Debian/Ubuntu package dependencies
+###############################################################################
+
+if ! command -v dpkg-query >/dev/null 2>&1 || ! command -v apt-get >/dev/null 2>&1; then
+    echo "ERROR: This installer requires a Debian/Ubuntu-based system (dpkg/apt)."
+    exit 1
+fi
+
+REQUIRED_PACKAGES=(openvpn network-manager network-manager-openvpn)
+MISSING_PACKAGES=()
+
+echo "Checking VPN dependencies..."
+for package in "${REQUIRED_PACKAGES[@]}"; do
+    if dpkg-query -W -f='${db:Status-Abbrev}' "$package" 2>/dev/null | grep -q '^ii '; then
+        echo "  [OK] $package"
+    else
+        echo "  [MISSING] $package"
+        MISSING_PACKAGES+=("$package")
+    fi
+done
+
+if (( ${#MISSING_PACKAGES[@]} > 0 )); then
+    echo "Installing missing packages: ${MISSING_PACKAGES[*]}"
+    apt-get update
+    apt-get install -y "${MISSING_PACKAGES[@]}"
+fi
+
+# Check that the tools and NetworkManager service are actually available.
+if ! command -v openvpn >/dev/null 2>&1 || ! command -v nmcli >/dev/null 2>&1; then
+    echo "ERROR: OpenVPN or nmcli is unavailable after dependency installation."
+    exit 1
+fi
+
+if ! nmcli general status >/dev/null 2>&1; then
+    echo "ERROR: NetworkManager is not responding. Start NetworkManager and retry."
     exit 1
 fi
 
