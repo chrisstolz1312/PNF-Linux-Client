@@ -1,0 +1,11 @@
+[Unit]
+Description=Run VPN Watchdog every 5 seconds
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=10s
+AccuracySec=1s
+Unit=vpn-watchdog.service
+
+[Install]
+WantedBy=timers.target

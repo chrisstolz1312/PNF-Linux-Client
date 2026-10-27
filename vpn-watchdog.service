@@ -1,0 +1,12 @@
+[Unit]
+Description=VPN Watchdog
+After=NetworkManager.service
+Requires=NetworkManager.service
+
+[Service]
+Type=oneshot
+
+ExecStart=/opt/vpn/healthcheck_vpn.sh
+ExecStartPost=/opt/vpn/network_change_watch.sh
+ExecStartPost=/usr/bin/sleep 2
+ExecStartPost=/opt/vpn/actor_vpn.sh
